@@ -15,6 +15,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     int loaded = 0;
     int loaded2 = 0;
+    int canDrag = 0;
+    int resizing = 0;
+    QPoint dragStartPosition;
     ~MainWindow();
 
 private slots:
@@ -31,6 +34,16 @@ private slots:
     void on_MainWindow_iconSizeChanged(const QSize &iconSize);
 
     void resizeEvent(QResizeEvent* ev);
+
+    void mousePressEvent(QMouseEvent *event);
+
+    void dropEvent(QDropEvent *event);
+
+    void dragMoveEvent(QDragMoveEvent *event);
+
+    void mouseMoveEvent(QMouseEvent *event);
+
+    void dragEnterEvent(QDragEnterEvent *event);
 
 private:
     Ui::MainWindow *ui;
