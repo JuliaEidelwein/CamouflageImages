@@ -17,6 +17,8 @@ public:
     int loaded2 = 0;
     int canDrag = 0;
     int resizing = 0;
+    int beforeHeight;
+    int beforeWidth;
     QPoint dragStartPosition;
     ~MainWindow();
 

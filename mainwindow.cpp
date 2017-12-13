@@ -12,11 +12,15 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    QImage *img = new QImage("://resizing.png");
     ui->setupUi(this);
     //ui->srEdge->setVisible(false);
     //ui->slEdge->setVisible(false);
     //ui->irEdge->setVisible(false);
     //ui->ilEdge->setVisible(false);
+
+    ui->srEdge->setPixmap(QPixmap::fromImage(img->scaled(15, 15, Qt::IgnoreAspectRatio)));
+    ui->srEdge->setStyleSheet("background-color: rgba(255, 255, 255, 0);");
     ui->srEdge->hide();
     ui->slEdge->hide();
     ui->irEdge->hide();
@@ -45,8 +49,8 @@ void MainWindow::on_pushButton_clicked(){
 
     showed_img = img.scaled(labelW,labelH,Qt::KeepAspectRatio);
     ui->background->setPixmap(QPixmap::fromImage(showed_img));
-    ui->noScale->setPixmap(QPixmap::fromImage(img));
-    ui->noScale->setVisible(false);
+    //ui->noScale->setPixmap(QPixmap::fromImage(img));
+    //ui->noScale->setVisible(false);
 }
 
 void MainWindow::on_pushButton_2_clicked(){
@@ -59,6 +63,8 @@ void MainWindow::on_pushButton_2_clicked(){
             img.load(filename);
             this->loaded2++;
         }
+        ui->noScale->setPixmap(QPixmap::fromImage(img));
+        ui->noScale->setVisible(false);
         labelH = ui->background->height()/2;
         labelW = ui->background->width()/2;
         showed_img = img.scaled(labelW,labelH,Qt::KeepAspectRatio);
@@ -98,6 +104,8 @@ void MainWindow::on_pushButton_5_clicked(){
             imgH = ui->foreground->pixmap()->height();
             //imgW = ui->foreground->width();
             imgW = ui->foreground->pixmap()->width();
+            beforeHeight = ui->foreground->height();
+            beforeWidth = ui->foreground->width();
             //ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 10, 10);
             //ui->slEdge->setGeometry((imgX - 5), (imgY - 5), 10, 10);
             //ui->irEdge->setGeometry((imgX + imgW - 5), (imgY + imgH - 5), 10, 10);
@@ -110,7 +118,7 @@ void MainWindow::on_pushButton_5_clicked(){
             ui->slEdge->raise();
             ui->irEdge->raise();
             ui->ilEdge->raise();
-            ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 10, 10);
+            ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 15, 15);
             ui->slEdge->setGeometry((imgX - 5), (imgY - 5), 10, 10);
             ui->irEdge->setGeometry((imgX + imgW - 5), (imgY + imgH - 5), 10, 10);
             ui->ilEdge->setGeometry((imgX - 5), (imgY + imgH - 5), 10, 10);
@@ -124,7 +132,7 @@ void MainWindow::on_pushButton_5_clicked(){
             ui->slEdge->raise();
             ui->irEdge->raise();
             ui->ilEdge->raise();
-            ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 10, 10);
+            ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 15, 15);
             ui->slEdge->setGeometry((imgX - 5), (imgY - 5), 10, 10);
             ui->irEdge->setGeometry((imgX + imgW - 5), (imgY + imgH - 5), 10, 10);
             ui->ilEdge->setGeometry((imgX - 5), (imgY + imgH - 5), 10, 10);
@@ -156,7 +164,7 @@ void MainWindow::resizeEvent(QResizeEvent* ev){
        ui->slEdge->raise();
        ui->irEdge->raise();
        ui->ilEdge->raise();
-       ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 10, 10);
+       ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 15, 15);
        ui->slEdge->setGeometry((imgX - 5), (imgY - 5), 10, 10);
        ui->irEdge->setGeometry((imgX + imgW - 5), (imgY + imgH - 5), 10, 10);
        ui->ilEdge->setGeometry((imgX - 5), (imgY + imgH - 5), 10, 10);
@@ -207,6 +215,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event){
                     qInfo("aqui3");
                     dragStartPosition = event->pos();
                     canDrag = 2;
+                    ui->srEdge->hide();
 
                     QDrag *drag = new QDrag(this);
                     QMimeData *mimeData = new QMimeData;
@@ -280,7 +289,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event){
 
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
-{   if(canDrag == 0){
+{
+    QImage img, showed_img;
+    int imgX, imgY, imgH, imgW, labelH, labelW;
+    if(canDrag == 1){
         if (!(event->buttons() & Qt::LeftButton))
             return;
         if ((event->pos() - dragStartPosition).manhattanLength()
@@ -295,13 +307,80 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         drag->setMimeData(mimeData);
 
         Qt::DropAction dropAction = drag->exec(Qt::CopyAction | Qt::MoveAction);
+    } else {
+        switch(canDrag){
+        case 2:
+            img = (ui->noScale->pixmap())->toImage();
+            ui->foreground->resize((dragStartPosition.x() - event->pos().x()), (dragStartPosition.y() - event->pos().y()));
+            qInfo("drag Start Position: %d %d | %d %d",dragStartPosition.x(), event->pos().x(), dragStartPosition.y(),  event->pos().y() );
+            labelH = ui->foreground->height();
+            labelW = ui->foreground->width();
+            showed_img = img.scaled(labelW,labelH,Qt::KeepAspectRatio);
+            ui->foreground->setPixmap(QPixmap::fromImage(showed_img));
+
+            imgX = ui->foreground->x();
+            imgY = ui->foreground->y();
+            imgH = ui->foreground->pixmap()->height();
+            imgW = ui->foreground->pixmap()->width();
+            ui->srEdge->raise();
+            ui->slEdge->raise();
+            ui->irEdge->raise();
+            ui->ilEdge->raise();
+            ui->srEdge->setGeometry((imgX + imgW - 5), (imgY - 5), 15, 15);
+            ui->slEdge->setGeometry((imgX - 5), (imgY - 5), 10, 10);
+            ui->irEdge->setGeometry((imgX + imgW - 5), (imgY + imgH - 5), 10, 10);
+            ui->ilEdge->setGeometry((imgX - 5), (imgY + imgH - 5), 10, 10);
+            break;
+        case 3:
+            break;
+        case 4:
+            break;
+        case 5:
+            break;
+
+        }
     }
 }
 
 void MainWindow::dragMoveEvent(QDragMoveEvent *event)
 {
+    QImage img, showed_img;
+    int imgX, imgY, imgH, imgW, labelH, labelW;
     qInfo("drag move");
     if (event->answerRect().intersects(ui->background->geometry()))
+
+        switch(canDrag){
+        case 2:
+                imgX = ui->foreground->x();
+                imgY = ui->foreground->y();
+                if((event->pos().x() - imgX) > 30 && (event->pos().y() - imgY) > 30){
+                img = (ui->noScale->pixmap())->toImage();
+                ui->foreground->resize((event->pos().x() - imgX),(event->pos().y() - imgY));
+                showed_img = img.scaled((event->pos().x() - imgX),(event->pos().y() - imgY),Qt::IgnoreAspectRatio);
+
+                ui->foreground->setPixmap(QPixmap::fromImage(showed_img));
+
+                imgX = ui->foreground->x();
+                imgY = ui->foreground->y();
+                imgH = ui->foreground->pixmap()->height();
+                imgW = ui->foreground->pixmap()->width();
+                ui->srEdge->raise();
+                ui->slEdge->raise();
+                ui->irEdge->raise();
+                ui->ilEdge->raise();
+                ui->srEdge->setGeometry(((event->pos().x() - imgX) - 5), (imgY - 5), 15, 15);
+                ui->slEdge->setGeometry((imgX - 5), (imgY - 5), 10, 10);
+                ui->irEdge->setGeometry(((event->pos().x() - imgX) - 5), ((event->pos().y() - imgY) - 5), 10, 10);
+                ui->ilEdge->setGeometry((imgX - 5), ((event->pos().y() - imgY) - 5), 10, 10);
+            }
+            break;
+        case 3:
+            break;
+        case 4:
+            break;
+        case 5:
+            break;
+        }
 
         event->acceptProposedAction();
 }
@@ -339,6 +418,8 @@ void MainWindow::dropEvent(QDropEvent *event)
     //ui->foreground->setGeometry(width, height, posX, posY);
     ui->foreground->show();
     ui->foreground->setGeometry(posX, posY, width, height);
+    ui->srEdge->show();
+    ui->srEdge->setGeometry(((posX + width) - 5), (posY - 5), 15, 15);
     event->accept();
     //event->acceptProposedAction();
 }
