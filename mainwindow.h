@@ -17,8 +17,6 @@ public:
     int loaded2 = 0;
     int canDrag = 0;
     int resizing = 0;
-    int beforeHeight;
-    int beforeWidth;
     QPoint dragStartPosition;
     ~MainWindow();
 
@@ -46,6 +44,8 @@ private slots:
     void mouseMoveEvent(QMouseEvent *event);
 
     void dragEnterEvent(QDragEnterEvent *event);
+
+    void on_pushButton_6_clicked();
 
 private:
     Ui::MainWindow *ui;
