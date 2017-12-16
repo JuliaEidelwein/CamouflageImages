@@ -43,6 +43,7 @@ void MainWindow::on_pushButton_clicked(){
 
     showed_img = img.scaled(labelW,labelH,Qt::KeepAspectRatio);
     ui->background->setPixmap(QPixmap::fromImage(showed_img));
+    dropPosition = QPoint(ui->background->x(), ui->background->y());
 }
 
 void MainWindow::on_pushButton_2_clicked(){
@@ -60,11 +61,16 @@ void MainWindow::on_pushButton_2_clicked(){
         labelH = ui->background->height()/2;
         labelW = ui->background->width()/2;
         showed_img = img.scaled(labelW,labelH,Qt::KeepAspectRatio);
-        ui->foreground->setGeometry(50,50,labelW,labelH);
+        ui->foreground->setGeometry(70,70,labelW,labelH);
         ui->foreground->setPixmap(QPixmap::fromImage(showed_img));
+        labelH = ui->foreground->pixmap()->height();
+        labelW = ui->foreground->pixmap()->width();
+        ui->foreground->setGeometry(70,70,labelW,labelH);
         ui->foreground->setStyleSheet("background-color: rgba(255, 255, 255, 0);");
         ui->foreground->show();
         ui->foreground->raise();
+        ui->frame->setStyleSheet("background-color: rgba(255, 255, 255, 0);");
+        ui->frame->raise();
     }
 }
 
@@ -124,8 +130,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event){
     if(loaded2 > 0){
         height = ui->foreground->pixmap()->height();
         width = ui->foreground->pixmap()->width();
-        posY = ui->foreground->y();
-        posX = ui->foreground->x();
+        posY = ui->foreground->y() + 60;// + ((ui->foreground->height()-height)/2);
+        posX = ui->foreground->x() + 24;// + ((ui->foreground->width()-width)/2);
         if (event->button() == Qt::LeftButton && (event->pos().x() >= posX) && (event->pos().x() <= (posX + width))
             && (event->pos().y() >= posY) && (event->pos().y() <= (posY + height)) && (resizing == 0)) {
             dragStartPosition = event->pos();
@@ -224,71 +230,96 @@ void MainWindow::dropEvent(QDropEvent *event){
     if(resizing == 0){
         posX = event->pos().x();
         posY = event->pos().y();
-        height = ui->foreground->height();
-        width = ui->foreground->width();
+        height = ui->foreground->pixmap()->height();
+        width = ui->foreground->pixmap()->width();
+        //ui->foreground->show();
+        ui->foreground->setGeometry(posX - 15, posY - 51, width, height);
         ui->foreground->show();
-        ui->foreground->setGeometry(posX, posY, width, height);
+        dropPosition = QPoint(posX, posY);
     } else {
         resizing = 0;
         ui->srEdge->hide();
     }
     if(canDrag < 3){
+        ui->pushButton_6->setEnabled(true);
         event->accept();
     }
 }
 
 void MainWindow::on_pushButton_6_clicked()
-{
+{   int nColorsForeground, nColorsCut, nColors;
     qInfo("clicou");
-    if(this->loaded2 == 1){
+    if(this->loaded2 > 0){
         int xIntersec, yIntersec;
         QImage backgroundSeg(ui->background->pixmap()->width(), ui->background->pixmap()->height(), ui->background->pixmap()->toImage().format());
         QImage foregroundSeg(ui->foreground->pixmap()->width(), ui->foreground->pixmap()->height(), ui->foreground->pixmap()->toImage().format());
-        //&backgroundSeg = new QImage();
-        //&foregroundSeg = new QImage();
+
         backgroundSeg = (ui->background->pixmap()->toImage());
         foregroundSeg = (ui->foreground->pixmap()->toImage());
         ui->foreground->setStyleSheet("background-color: rgba(255, 255, 255, 0);");
         grayscale(&backgroundSeg);
         grayscale(&foregroundSeg);
+        //quantization(&backgroundSeg, NCOLORSQUATIZATION);
+        //quantization(&foregroundSeg, NCOLORSQUATIZATION);
+       /* nColorsCut = countColorsLuminance(cut);
+        nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage());
+        if(nColorsCut < nColorsForeground){
+            quantization(&backgroundSeg, nColorsCut);
+            quantization(&foregroundSeg, nColorsCut);
+        } else {
+            quantization(&backgroundSeg, nColorsForeground);
+            quantization(&foregroundSeg, nColorsForeground);
+        }*/
+
+        /*xIntersec = ui->foreground->x() - ui->background->x();
+        yIntersec = ui->foreground->y() - ui->background->y();*/
+
+       // xIntersec = (ui->foreground->x() + ((ui->foreground->width() - ui->foreground->pixmap()->width())/2)) - (ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2));
+       // yIntersec = (ui->foreground->y() + ((ui->foreground->height() - ui->foreground->pixmap()->height())/2)) - (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2));
+
+        xIntersec = dropPosition.x() - (ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2));
+        yIntersec = dropPosition.y() - (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2)) + 15;
+
+        qInfo("posicao background: %d %d %d %d",(ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2)), (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2)), ui->background->x(),ui->background->y());
+        qInfo("posicao foreground: %d %d %d %d",(ui->foreground->x() + ((ui->foreground->width() - ui->foreground->pixmap()->width())/2)), (ui->foreground->y() + ((ui->foreground->height() - ui->foreground->pixmap()->height())/2)), ui->foreground->x(),ui->foreground->y());
+        qInfo("dropPosition: %d %d", dropPosition.x(), dropPosition.y());
+        qInfo("Intersec: %d %d", xIntersec, yIntersec);
+
+        QImage cut(ui->foreground->pixmap()->width(), ui->foreground->pixmap()->height(), ui->foreground->pixmap()->toImage().format());
+        cut = cutImage(backgroundSeg, foregroundSeg, xIntersec, yIntersec);
+
+        nColorsCut = countColorsLuminance(cut);
+        nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage());
+        /*if(nColorsCut < nColorsForeground){
+            quantization(&backgroundSeg, nColorsCut);
+            quantization(&foregroundSeg, nColorsCut);
+            nColors = nColorsCut;
+        } else {
+            quantization(&backgroundSeg, nColorsForeground);
+            quantization(&foregroundSeg, nColorsForeground);
+            nColors = nColorsForeground;
+        }*/
         quantization(&backgroundSeg, 10);
         quantization(&foregroundSeg, 10);
-        xIntersec = ui->foreground->x() - ui->background->x();
-        yIntersec = ui->foreground->y() - ui->background->y();
-        if(xIntersec < 0){
-            if(yIntersec < 0){
-                QImage pieceOfForeground((ui->foreground->pixmap()->width() - xIntersec), (ui->foreground->pixmap()->height() - yIntersec), ui->foreground->pixmap()->toImage().format());
-                pieceOfForeground = ui->foreground->pixmap()->toImage().copy((ui->foreground->x() + xIntersec),(ui->foreground->y() + yIntersec),(ui->foreground->pixmap()->width() - xIntersec),(ui->foreground->pixmap()->height() - yIntersec));
-                QImage cut(pieceOfForeground.width(), pieceOfForeground.height(), ui->foreground->pixmap()->toImage().format());
-                xIntersec = 0;
-                yIntersec = 0;
-                cut = cutImage(backgroundSeg, pieceOfForeground, xIntersec, yIntersec);
-                cut.save("cutResult.png");
-            } else {
-                QImage pieceOfForeground((ui->foreground->pixmap()->width() - xIntersec), ui->foreground->pixmap()->height(), ui->foreground->pixmap()->toImage().format());
-                pieceOfForeground = ui->foreground->pixmap()->toImage().copy((ui->foreground->x() + xIntersec),(ui->foreground->y()),(ui->foreground->pixmap()->width() - xIntersec),(ui->foreground->pixmap()->height()));
-                QImage cut(pieceOfForeground.width(), pieceOfForeground.height(), ui->foreground->pixmap()->toImage().format());
-                xIntersec = 0;
-                cut = cutImage(backgroundSeg, pieceOfForeground, xIntersec, yIntersec);
-                cut.save("cutResult.png");
-            }
-        } else {
-            if(yIntersec < 0){
-                QImage pieceOfForeground(ui->foreground->pixmap()->width(), (ui->foreground->pixmap()->height() - yIntersec), ui->foreground->pixmap()->toImage().format());
-                pieceOfForeground = ui->foreground->pixmap()->toImage().copy((ui->foreground->x()),(ui->foreground->y() + yIntersec),(ui->foreground->pixmap()->width()),(ui->foreground->pixmap()->height() - yIntersec));
-                QImage cut(pieceOfForeground.width(), pieceOfForeground.height(), ui->foreground->pixmap()->toImage().format());
-                yIntersec = 0;
-                cut = cutImage(backgroundSeg, pieceOfForeground, xIntersec, yIntersec);
-                cut.save("cutResult.png");
-            } else {
-                QImage cut(ui->foreground->pixmap()->width(), ui->foreground->pixmap()->height(), ui->foreground->pixmap()->toImage().format());
-                cut = cutImage(backgroundSeg, foregroundSeg, xIntersec, yIntersec);
-                cut.save("cutResult.png");
-            }
-        }
+        nColors = 10;
 
         //cut = cutImage(backgroundSeg, foregroundSeg, xIntersec, yIntersec);
+
+        cut.save("cutResult.png");
+        /*if(nColorsCut = countColorsLuminance(cut) < NCOLORSQUATIZATION
+        || nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage()) < NCOLORSQUATIZATION){
+            if(nColorsCut < nColorsForeground){
+                quantization(&backgroundSeg, NCOLORSQUATIZATION);
+                quantization(&foregroundSeg, NCOLORSQUATIZATION);
+            }
+        }*/
+        QImage backgroundAux(ui->background->pixmap()->width(), ui->background->pixmap()->height(), ui->background->pixmap()->toImage().format());
+        backgroundAux = ui->background->pixmap()->toImage();
+        qInfo("Vai entrar na sintese");
+        textureSynthesis(&backgroundAux,foregroundSeg, cut, xIntersec, yIntersec, nColors);
+        qInfo("colors: %d | %d | %d", nColors, nColorsCut, nColorsForeground);
         backgroundSeg.save("foregroundResult.png");
         foregroundSeg.save("backgroundResult.png");
+        backgroundAux.save("resultadoFinal.png");
     }
 }

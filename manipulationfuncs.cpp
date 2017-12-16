@@ -72,7 +72,7 @@ void grayscale(QImage *image){
 
 void quantization(QImage *image, int numOfColors){
     int shade, i, j, k, imgH, imgW, increment, alpha;
-    int qShades[numOfColors];
+    int *qShades = new int[numOfColors];
     imgH = image->height();
     imgW = image->width();
     if(numOfColors < 2){
@@ -124,6 +124,136 @@ QImage cutImage(QImage image, QImage targetImage, int xIntersec, int yIntersec){
         }
     }
     return cut;
+}
+
+int countColorsLuminance(QImage image){
+    int i, j, colors[256] = {0}, total = 0;
+    for(i = 0; i < image.width(); i++){
+        for(j = 0; j < image.height(); j++){
+            colors[qRed(image.pixel(i,j))] =  colors[qRed(image.pixel(i,j))] + 1;
+        }
+    }
+    for(i = 0; i < 256; i++){
+        if(colors[i] > 0){
+            total++;
+        }
+    }
+    return total;
+}
+
+//int * separateSegments(QImage image, int segmentMap[], int numOfColors){
+void separateSegments(QImage image, int segmentMap[], int numOfColors, int colorSubtitle[]){
+    int segmentID = 0, i, j, k, counter = 0, alreadyIn = 0;
+   // int colorSubtitle[numOfColors] = {-1}, alreadyIn = 0;
+    //qInfo("veio aqui 0");
+    for(i = 0; i < image.width(); i++){
+        for(j = 0; j < image.height(); j++){
+            if(qAlpha(image.pixel(i,j)) > 0){
+                //qInfo("veio aqui 1");
+                for(k = 0; k < numOfColors; k++){
+                    if(qRed(image.pixel(i,j)) == colorSubtitle[k]){
+                        alreadyIn = 1;
+                        segmentID = k;
+                    }
+                }
+                //qInfo("veio aqui 2");
+                if(alreadyIn == 0){
+                    //qInfo("not already in");
+                    colorSubtitle[counter] = qRed(image.pixel(i,j));
+                    segmentMap[j*image.width() + i] = counter;
+                    counter++;
+                   // qInfo("fim do not already in");
+                } else {
+                    //qInfo("already in");
+                    segmentMap[j*image.width() + i] = segmentID;
+                }
+                alreadyIn = 0;
+                //qInfo("veio aqui 3");
+            }
+        }
+    }
+    //return colorSubtitle;
+}
+
+int getSegment(int shade, int colorSegmentTable[], int numOfColors){
+    int i = 0;
+    while(i < numOfColors){
+        if((shade == (colorSegmentTable[i]))){
+            return i;
+        }
+        i++;
+    }
+    return 0;
+}
+
+void textureSynthesis(QImage *background, QImage grayForeground, QImage cutGrayBg, int x, int y, int numOfColors){
+    int i, j, k, segmentMap[grayForeground.height()*grayForeground.width()];
+    int colorSegmentTable[numOfColors];
+    int  segment, match1, match2, match3, match4;
+    QImage *aux = new QImage(grayForeground.width(), grayForeground.height(), grayForeground.format());
+    *aux = grayForeground;
+    for(i = 0; i < grayForeground.height()*grayForeground.width(); i++){
+        segmentMap[i] = -1;
+    }
+    //colorSegmentTable = separateSegments(cutGrayBg,segmentMap,numOfColors);
+    separateSegments(cutGrayBg,segmentMap,numOfColors,colorSegmentTable);
+    //qInfo("ainda vivo");
+    for(i = 0; i < grayForeground.width(); i++){
+        for(j = 0; j < grayForeground.height(); j++){
+            if(qAlpha(grayForeground.pixel(i,j)) > 0){
+
+                segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
+                //qInfo("segment: %d", segment);
+                k = 0;
+                match1 = -1;
+                match2 = -1;
+                match3 = -1;
+                match4 = -1;
+                while(k < grayForeground.height()*grayForeground.width()){
+                    if(colorSegmentTable[k] == segment){
+                        match1 = k;
+                        //qInfo("ate aqui 1");
+                        if(i > 0 && k > 0 && colorSegmentTable[k - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j)), colorSegmentTable, numOfColors)){
+                            match2 = k;
+                            if(j > 0 && k > (grayForeground.height() - 1) && colorSegmentTable[k - grayForeground.height()] == getSegment(qRed(grayForeground.pixel(i,j - 1)), colorSegmentTable, numOfColors)){
+                                match3 = k;
+                                //qInfo("match 3");
+                                if(colorSegmentTable[k - grayForeground.height() - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j - 1)), colorSegmentTable, numOfColors)){
+                                    match4 = k;
+                                    //qInfo("match 4");
+                                }
+                            }
+                        }
+                    }
+                    k++;
+                }
+                //qInfo("m1 = %d, m2 = %d, m3 = %d, m4 = %d", match1, match2, match3, match4);
+                if(match4 > -1){
+                    aux->setPixel(i,j, (background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))));
+                } else {
+                    if(match3 > -1){
+                        aux->setPixel(i,j, (background->pixel((x + (match3%grayForeground.width())), (y + (match3/grayForeground.width())))));
+                    } else {
+                        if(match2 > -1){
+                            aux->setPixel(i,j, (background->pixel((x + (match2%grayForeground.width())), (y + (match2/grayForeground.width())))));
+                        } else {
+                            if(match1 > -1){
+                                aux->setPixel(i,j, (background->pixel((x + (match1%grayForeground.width())), (y + (match1/grayForeground.width())))));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    qInfo("ate aqui 5");
+    for(i = 0; i < grayForeground.width(); i++){
+        for(j = 0; j < grayForeground.height(); j++){
+            if(qAlpha(aux->pixel(i,j)) > 0){
+                background->setPixel((x + i),(y + j),(aux->pixel(i,j)));
+            }
+        }
+    }
 }
 
 void mostFrequentColors(QImage *image, int numOfColors,int mostFrequentValues[256]){
