@@ -290,20 +290,39 @@ void MainWindow::on_pushButton_6_clicked()
 
         nColorsCut = countColorsLuminance(cut);
         nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage());
+        qInfo("before total: %d | %d", nColorsCut,nColorsForeground);
         /*if(nColorsCut < nColorsForeground){
-            quantization(&backgroundSeg, nColorsCut);
+            quantization(&cut, nColorsCut);
             quantization(&foregroundSeg, nColorsCut);
             nColors = nColorsCut;
         } else {
-            quantization(&backgroundSeg, nColorsForeground);
+            quantization(&cut, nColorsForeground);
             quantization(&foregroundSeg, nColorsForeground);
             nColors = nColorsForeground;
         }*/
-        quantization(&backgroundSeg, 10);
-        quantization(&foregroundSeg, 10);
-        nColors = 10;
+        int mostFrequentValues[256] = {0};
+
+        //quantization(&backgroundSeg, 30, mostFrequentValues);
+        //quantization(&foregroundSeg, 30, mostFrequentValues);
+        //nColors = 30;
+
+        if(nColorsCut < nColorsForeground){
+            mostFrequentColors(&backgroundSeg,nColorsCut,mostFrequentValues);
+            quantization(&backgroundSeg, nColorsCut, mostFrequentValues);
+            quantization(&foregroundSeg, nColorsCut, mostFrequentValues);
+            nColors = nColorsCut;
+        } else {
+            mostFrequentColors(&backgroundSeg,nColorsForeground,mostFrequentValues);
+            quantization(&backgroundSeg, nColorsForeground, mostFrequentValues);
+            quantization(&foregroundSeg, nColorsForeground, mostFrequentValues);
+            nColors = nColorsForeground;
+        }
 
         //cut = cutImage(backgroundSeg, foregroundSeg, xIntersec, yIntersec);
+        qInfo("total: %d | %d - %d", countColorsLuminance(backgroundSeg),countColorsLuminance(foregroundSeg), nColors);
+
+        //mergeImages(&foregroundSeg, cut);
+        //quantization(&foregroundSeg,nColors,mostFrequentValues);
 
         cut.save("cutResult.png");
         /*if(nColorsCut = countColorsLuminance(cut) < NCOLORSQUATIZATION
@@ -313,11 +332,15 @@ void MainWindow::on_pushButton_6_clicked()
                 quantization(&foregroundSeg, NCOLORSQUATIZATION);
             }
         }*/
+        nColors = countColorsLuminance(foregroundSeg);
         QImage backgroundAux(ui->background->pixmap()->width(), ui->background->pixmap()->height(), ui->background->pixmap()->toImage().format());
         backgroundAux = ui->background->pixmap()->toImage();
+
         qInfo("Vai entrar na sintese");
         textureSynthesis(&backgroundAux,foregroundSeg, cut, xIntersec, yIntersec, nColors);
+
         qInfo("colors: %d | %d | %d", nColors, nColorsCut, nColorsForeground);
+
         backgroundSeg.save("foregroundResult.png");
         foregroundSeg.save("backgroundResult.png");
         backgroundAux.save("resultadoFinal.png");
