@@ -306,6 +306,8 @@ void MainWindow::on_pushButton_6_clicked()
         //quantization(&foregroundSeg, 30, mostFrequentValues);
         //nColors = 30;
 
+        //nColorsCut = 20;
+        //nColorsForeground = 20;
         if(nColorsCut < nColorsForeground){
             mostFrequentColors(&backgroundSeg,nColorsCut,mostFrequentValues);
             quantization(&backgroundSeg, nColorsCut, mostFrequentValues);
@@ -341,8 +343,23 @@ void MainWindow::on_pushButton_6_clicked()
 
         qInfo("colors: %d | %d | %d", nColors, nColorsCut, nColorsForeground);
 
-        backgroundSeg.save("foregroundResult.png");
-        foregroundSeg.save("backgroundResult.png");
+        backgroundSeg.save("backgroundResult.png");
+        foregroundSeg.save("foregroundResult.png");
         backgroundAux.save("resultadoFinal.png");
+        ui->foreground->hide();
+        ui->background->setPixmap(QPixmap::fromImage(backgroundAux.scaled(ui->background->width(),ui->background->height(),Qt::KeepAspectRatio)));
+    }
+}
+
+void MainWindow::on_pushButton_7_clicked()
+{
+    if(this->loaded == 0){
+        return;
+    }
+    QString filename = QFileDialog::getSaveFileName(this, tr("Save File"),QDir::currentPath()+"/untitled.jpeg",tr("Images (*.png *.xpm *.jpg *.jpeg)"));
+    QImage img;
+    img = (ui->background->pixmap())->toImage();
+    if( !filename.isNull() ){
+        img.save(filename,"JPEG",-1);
     }
 }
