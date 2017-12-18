@@ -259,55 +259,24 @@ void MainWindow::on_pushButton_6_clicked()
         ui->foreground->setStyleSheet("background-color: rgba(255, 255, 255, 0);");
         grayscale(&backgroundSeg);
         grayscale(&foregroundSeg);
-        //quantization(&backgroundSeg, NCOLORSQUATIZATION);
-        //quantization(&foregroundSeg, NCOLORSQUATIZATION);
-       /* nColorsCut = countColorsLuminance(cut);
-        nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage());
-        if(nColorsCut < nColorsForeground){
-            quantization(&backgroundSeg, nColorsCut);
-            quantization(&foregroundSeg, nColorsCut);
-        } else {
-            quantization(&backgroundSeg, nColorsForeground);
-            quantization(&foregroundSeg, nColorsForeground);
-        }*/
 
-        /*xIntersec = ui->foreground->x() - ui->background->x();
-        yIntersec = ui->foreground->y() - ui->background->y();*/
-
-       // xIntersec = (ui->foreground->x() + ((ui->foreground->width() - ui->foreground->pixmap()->width())/2)) - (ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2));
-       // yIntersec = (ui->foreground->y() + ((ui->foreground->height() - ui->foreground->pixmap()->height())/2)) - (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2));
 
         xIntersec = dropPosition.x() - (ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2));
         yIntersec = dropPosition.y() - (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2)) + 15;
 
-        qInfo("posicao background: %d %d %d %d",(ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2)), (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2)), ui->background->x(),ui->background->y());
-        qInfo("posicao foreground: %d %d %d %d",(ui->foreground->x() + ((ui->foreground->width() - ui->foreground->pixmap()->width())/2)), (ui->foreground->y() + ((ui->foreground->height() - ui->foreground->pixmap()->height())/2)), ui->foreground->x(),ui->foreground->y());
-        qInfo("dropPosition: %d %d", dropPosition.x(), dropPosition.y());
-        qInfo("Intersec: %d %d", xIntersec, yIntersec);
+        //qInfo("posicao background: %d %d %d %d",(ui->background->x() + ((ui->background->width() - ui->background->pixmap()->width())/2)), (ui->background->y() + ((ui->background->height() - ui->background->pixmap()->height())/2)), ui->background->x(),ui->background->y());
+        //qInfo("posicao foreground: %d %d %d %d",(ui->foreground->x() + ((ui->foreground->width() - ui->foreground->pixmap()->width())/2)), (ui->foreground->y() + ((ui->foreground->height() - ui->foreground->pixmap()->height())/2)), ui->foreground->x(),ui->foreground->y());
+        //qInfo("dropPosition: %d %d", dropPosition.x(), dropPosition.y());
+        //qInfo("Intersec: %d %d", xIntersec, yIntersec);
 
         QImage cut(ui->foreground->pixmap()->width(), ui->foreground->pixmap()->height(), ui->foreground->pixmap()->toImage().format());
         cut = cutImage(backgroundSeg, foregroundSeg, xIntersec, yIntersec);
 
         nColorsCut = countColorsLuminance(cut);
         nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage());
-        qInfo("before total: %d | %d", nColorsCut,nColorsForeground);
-        /*if(nColorsCut < nColorsForeground){
-            quantization(&cut, nColorsCut);
-            quantization(&foregroundSeg, nColorsCut);
-            nColors = nColorsCut;
-        } else {
-            quantization(&cut, nColorsForeground);
-            quantization(&foregroundSeg, nColorsForeground);
-            nColors = nColorsForeground;
-        }*/
+
         int mostFrequentValues[256] = {0};
 
-        //quantization(&backgroundSeg, 30, mostFrequentValues);
-        //quantization(&foregroundSeg, 30, mostFrequentValues);
-        //nColors = 30;
-
-        //nColorsCut = 20;
-        //nColorsForeground = 20;
         if(nColorsCut < nColorsForeground){
             mostFrequentColors(&backgroundSeg,nColorsCut,mostFrequentValues);
             quantization(&backgroundSeg, nColorsCut, mostFrequentValues);
@@ -320,28 +289,14 @@ void MainWindow::on_pushButton_6_clicked()
             nColors = nColorsForeground;
         }
 
-        //cut = cutImage(backgroundSeg, foregroundSeg, xIntersec, yIntersec);
         qInfo("total: %d | %d - %d", countColorsLuminance(backgroundSeg),countColorsLuminance(foregroundSeg), nColors);
 
-        //mergeImages(&foregroundSeg, cut);
-        //quantization(&foregroundSeg,nColors,mostFrequentValues);
-
         cut.save("cutResult.png");
-        /*if(nColorsCut = countColorsLuminance(cut) < NCOLORSQUATIZATION
-        || nColorsForeground = countColorsLuminance(ui->foreground->pixmap()->toImage()) < NCOLORSQUATIZATION){
-            if(nColorsCut < nColorsForeground){
-                quantization(&backgroundSeg, NCOLORSQUATIZATION);
-                quantization(&foregroundSeg, NCOLORSQUATIZATION);
-            }
-        }*/
         nColors = countColorsLuminance(foregroundSeg);
         QImage backgroundAux(ui->background->pixmap()->width(), ui->background->pixmap()->height(), ui->background->pixmap()->toImage().format());
         backgroundAux = ui->background->pixmap()->toImage();
 
-        qInfo("Vai entrar na sintese");
         textureSynthesis(&backgroundAux,foregroundSeg, cut, xIntersec, yIntersec, nColors);
-
-        qInfo("colors: %d | %d | %d", nColors, nColorsCut, nColorsForeground);
 
         backgroundSeg.save("backgroundResult.png");
         foregroundSeg.save("foregroundResult.png");

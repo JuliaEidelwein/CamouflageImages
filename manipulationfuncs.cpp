@@ -2,41 +2,6 @@
 #include <time.h>
 #include <QRgb>
 
-void verticalMirroring(QImage *image){
-    uchar *aux1, *aux2, *aux3;
-    int i, j, imgH, imgW;
-    imgH = image->height();
-    imgW = image->width();
-    aux3 = (uchar*) malloc(sizeof(QRgb)*imgW);
-    for(i = 0, j = imgH-1; i < floor(imgH/2); i++, j--){
-        aux1 = image->scanLine(i);
-        aux2 = image->scanLine(j);
-        memcpy(aux3,aux1,sizeof(QRgb)*imgW);
-        memcpy(aux1,aux2,sizeof(QRgb)*imgW);
-        memcpy(aux2,aux3,sizeof(QRgb)*imgW);
-    }
-    free(aux3);
-    aux3 = NULL;
-}
-
-void horizontalMirroring(QImage *image){
-    uchar *aux1 = NULL, *aux2;
-    int i, j, imgH, imgW;
-    imgH = image->height();
-    imgW = image->width();
-    aux1 = (uchar*) malloc(sizeof(QRgb));
-    for(i = 0; i < imgH; i++){
-        aux2 = image->scanLine(i);
-        for(j = 0; j < floor(imgW/2); j++){
-             memcpy(aux1,(aux2 + j*sizeof(QRgb)),sizeof(QRgb));
-             memcpy((aux2 + j*sizeof(QRgb)),(aux2 + (imgW - j - 1)*sizeof(QRgb)),sizeof(QRgb));
-             memcpy((aux2 + (imgW - j - 1)*sizeof(QRgb)),aux1,sizeof(QRgb));
-        }
-    }
-    free(aux1);
-    aux1 = NULL;
-}
-
 void grayscale(QImage *image){
     float L, alpha;
     int i, j, imgH, imgW;
@@ -73,47 +38,6 @@ void quantization(QImage *image, int numOfColors, int mostFrequentValues[]){
     }
 }
 
-/*void quantization(QImage *image, int numOfColors){
-    int shade, i, j, k, imgH, imgW, increment, alpha;
-    int *qShades = new int[numOfColors];
-    imgH = image->height();
-    imgW = image->width();
-    if(numOfColors < 2){
-        numOfColors = 2;
-    }
-    increment = 255/(numOfColors - 1);
-    for(i = 0; i < numOfColors; i++){
-        //qShades[i] = floor(i*increment);
-        qShades[i] = round(i*increment);
-    }
-    for(i = 0; i < imgW; i++){
-        for(j = 0; j < imgH; j++){
-            shade = qRed(image->pixel(i,j));
-            alpha = qAlpha(image->pixel(i,j));
-            if(shade > (qShades[numOfColors - 1]/2)){
-                shade = qShades[numOfColors - 1];
-            } else {
-                for(k = 0; k < numOfColors - 1; k++){
-                    if(shade > qShades[k] && shade < (qShades[k+1]/2)){
-                        shade = qShades[k];
-                    }
-                }
-            }
-            image->setPixel(QPoint(i,j),qRgba(shade,shade,shade,alpha));
-        }
-    }
-     /*       image->setPixel(QPoint(i,j),qRgb(shade,shade,shade,alpha));
-            diff = abs(shade - shades[j]);
-            for(k = 0; k < numOfColors; k++){
-                if(abs(shade - shades[k]) < diff){
-                    diff = abs(shade - mostFrequentValues[k]);
-                    closest = mostFrequentValues[k];
-                }
-            }
-            image->setPixel(QPoint(i,j),qRgb(closest,closest,closest));
-        }
-    }*/
-//}
 
 QImage cutImage(QImage image, QImage targetImage, int xIntersec, int yIntersec){
     QImage cut(targetImage.width(), targetImage.height(), targetImage.format());
@@ -145,38 +69,28 @@ int countColorsLuminance(QImage image){
     return total;
 }
 
-//int * separateSegments(QImage image, int segmentMap[], int numOfColors){
 void separateSegments(QImage image, int segmentMap[], int numOfColors, int colorSubtitle[]){
     int segmentID = 0, i, j, k, counter = 0, alreadyIn = 0;
-   // int colorSubtitle[numOfColors] = {-1}, alreadyIn = 0;
-    //qInfo("veio aqui 0");
     for(i = 0; i < image.width(); i++){
         for(j = 0; j < image.height(); j++){
             if(qAlpha(image.pixel(i,j)) > 0){
-                //qInfo("veio aqui 1");
                 for(k = 0; k < numOfColors; k++){
                     if(qRed(image.pixel(i,j)) == colorSubtitle[k]){
                         alreadyIn = 1;
                         segmentID = k;
                     }
                 }
-                //qInfo("veio aqui 2");
                 if(alreadyIn == 0){
-                    //qInfo("not already in");
                     colorSubtitle[counter] = qRed(image.pixel(i,j));
                     segmentMap[j*image.width() + i] = counter;
                     counter++;
-                   // qInfo("fim do not already in");
                 } else {
-                    //qInfo("already in");
                     segmentMap[j*image.width() + i] = segmentID;
                 }
                 alreadyIn = 0;
-                //qInfo("veio aqui 3");
             }
         }
     }
-    //return colorSubtitle;
 }
 
 int getSegment(int shade, int colorSegmentTable[], int numOfColors){
@@ -231,76 +145,23 @@ void mergeImages2(QImage *image1, QImage image2){
     for(i = 0; i < image1->width(); i++){
         for(j = 0; j < image1->height(); j++){
             if(qAlpha(image1->pixel(i,j)) > 0 && qAlpha(image2.pixel(i,j)) > 0){
-                //image1->setPixel(i, j, qRgba(image1->pixel(i,j), 220) + qRgba(image2.pixel(i,j))),35);
                 image1->setPixel(i, j,(qRgba(qRed(image1->pixel(i,j)),qGreen(image1->pixel(i,j)),qBlue(image1->pixel(i,j)),220) + qRgba(qRed(image2.pixel(i,j)),qGreen(image2.pixel(i,j)),qBlue(image2.pixel(i,j)),35)));
             }
         }
     }
 }
 void textureSynthesis(QImage *background, QImage grayForeground, QImage cutGrayBg, int x, int y, int numOfColors){
-    int i, j, k, segmentMap[grayForeground.height()*grayForeground.width()];//, borders[grayForeground.height()*grayForeground.width()] = {0};
+    int i, j, k, segmentMap[grayForeground.height()*grayForeground.width()];
     int colorSegmentTable[numOfColors];
     int segmentPopFG[numOfColors] = {0}, segmentPopBG[numOfColors] = {0};
-    int  segment, match1, match2, match3, match4;
+    int  segment;
     QImage *aux = new QImage(grayForeground.width(), grayForeground.height(), grayForeground.format());
     *aux = grayForeground;
     for(i = 0; i < grayForeground.height()*grayForeground.width(); i++){
         segmentMap[i] = -1;
     }
-    //colorSegmentTable = separateSegments(cutGrayBg,segmentMap,numOfColors);
     separateSegments(cutGrayBg,segmentMap,numOfColors,colorSegmentTable);
-    ///countSegment(cutGrayBg,colorSegmentTable,segmentPopBG,numOfColors);
-    ///countSegment(grayForeground,colorSegmentTable,segmentPopBG,numOfColors);
-    ///assingSegments(colorSegmentTable, segmentPopBG, segmentPopFG, numOfColors);
 
-    //qInfo("ainda vivo");
-    /*for(i = 0; i < grayForeground.width(); i++){
-        for(j = 0; j < grayForeground.height(); j++){
-            if(qAlpha(grayForeground.pixel(i,j)) > 0){
-                segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-                //qInfo("segment: %d", segment);
-                k = 0;
-                match1 = -1;
-                match2 = -1;
-                match3 = -1;
-                match4 = -1;
-                while(k < grayForeground.height()*grayForeground.width()){
-                    if(colorSegmentTable[k] == segment){
-                        match1 = k;
-                        //qInfo("ate aqui 1");
-                        if(i > 0 && k > 0 && colorSegmentTable[k - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j)), colorSegmentTable, numOfColors)){
-                            match2 = k;
-                            if(j > 0 && k > (grayForeground.height() - 1) && colorSegmentTable[k - grayForeground.height()] == getSegment(qRed(grayForeground.pixel(i,j - 1)), colorSegmentTable, numOfColors)){
-                                match3 = k;
-                                //qInfo("match 3");
-                                if(colorSegmentTable[k - grayForeground.height() - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j - 1)), colorSegmentTable, numOfColors)){
-                                    match4 = k;
-                                    //qInfo("match 4");
-                                }
-                            }
-                        }
-                    }
-                    k++;
-                }
-                //qInfo("m1 = %d, m2 = %d, m3 = %d, m4 = %d", match1, match2, match3, match4);
-                if(match4 > -1){
-                    aux->setPixel(i,j, (background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))));
-                } else {
-                    if(match3 > -1){
-                        aux->setPixel(i,j, (background->pixel((x + (match3%grayForeground.width())), (y + (match3/grayForeground.width())))));
-                    } else {
-                        if(match2 > -1){
-                            aux->setPixel(i,j, (background->pixel((x + (match2%grayForeground.width())), (y + (match2/grayForeground.width())))));
-                        } else {
-                            if(match1 > -1){
-                                aux->setPixel(i,j, (background->pixel((x + (match1%grayForeground.width())), (y + (match1/grayForeground.width())))));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }*/
     int l = 0, lastL = 0;
     for(k = 0; k < numOfColors; k++){
         for(i = 0; i < grayForeground.width(); i++){
@@ -327,92 +188,8 @@ void textureSynthesis(QImage *background, QImage grayForeground, QImage cutGrayB
             }
         }
     }
-
-
     aux->save("auxFilled.png");
 
-
-
-
-
-       /* l = 0;
-        lastL = 0;
-        //for(k = 0; k < numOfColors; k++){
-            for(i = 0; i < grayForeground.width(); i++){
-                for(j = 0; j < grayForeground.height(); j++){
-                    //qInfo("aqui,%d %d | %d %d", i, j, grayForeground.width(), grayForeground.height());
-                    if(qAlpha(grayForeground.pixel(i,j)) > 0){
-                        segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-                        if((segment != getSegment(qRed(grayForeground.pixel(i - 1,j - 1)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i,j - 1)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i + 1,j - 1)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i - 1,j)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i + 1,j)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i - 1,j + 1)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i,j + 1)), colorSegmentTable, numOfColors))
-                        || (segment != getSegment(qRed(grayForeground.pixel(i + 1,j + 1)), colorSegmentTable, numOfColors))){
-                        //if(segment == k){
-                            borders[j*grayForeground.width() + i] = 1;
-                            l = lastL;
-                            while(l < grayForeground.height()*grayForeground.width()){
-                                if(colorSegmentTable[l] == segment){
-                                   //aux->setPixel(i,j, (background->pixel((x + (l%grayForeground.width())), (y + (l/grayForeground.width())))));
-                                   aux->setPixel(i,j, qRgb(255,0,0));
-                                    lastL = l;
-                                   l = grayForeground.height()*grayForeground.width();
-                                } else {
-                                    if(l == grayForeground.height()*grayForeground.width() - 1 && lastL > 0){
-                                        l = -1;
-                                        lastL = 0;
-                                    }
-                                }
-                                l++;
-                            }
-                        }
-                    }
-                }
-            }
-        //}*/
-
-        aux->save("auxBorders.png");
-
-
-
-
-
-
-    /*int ok;
-    int random;
-    srand (time(NULL));
-    for(i = 0; i < grayForeground.width(); i++){
-        for(j = 0; j < grayForeground.height(); j++){
-            if(qAlpha(grayForeground.pixel(i,j)) > 0){
-                segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-                ok = 0;
-                k = 0;
-                while(ok == 0){
-                    random = rand() % (grayForeground.height()*grayForeground.width());
-                    while(random < (grayForeground.height()*grayForeground.width())){
-                        if(segment == segmentMap[random]){
-                            qInfo("foi");
-                            aux->setPixel(i,j, (background->pixel((x + (random%grayForeground.width())), (y + (random/grayForeground.width())))));
-                            ok = 1;
-                            random = (grayForeground.height()*grayForeground.width());
-                        }
-                        random++;
-                    }
-                }
-            }
-        }
-    }*/
-
-    qInfo("ate aqui 5");
-    //brightness(aux, -50);
-    //QImage cut(aux->width(), aux->height(), aux->format());
-    //cut = *aux;
-    //cut = cutImage(cut, *aux, 0, 0);
-    //grayscale(&cut);
-    //mergeImages2(aux,cut);
     for(i = 0; i < grayForeground.width(); i++){
         for(j = 0; j < grayForeground.height(); j++){
             if(qAlpha(aux->pixel(i,j)) > 0){
@@ -422,259 +199,6 @@ void textureSynthesis(QImage *background, QImage grayForeground, QImage cutGrayB
         }
     }
 }
-
-//void textureSynthesis(QImage *background, QImage grayForeground, QImage cutGrayBg, int x, int y, int numOfColors){
-//    int i, j, k, segmentMap[grayForeground.height()*grayForeground.width()], borders[grayForeground.height()*grayForeground.width()] = {0};
-//    int colorSegmentTable[numOfColors];
-//    int segmentPopFG[numOfColors] = {0}, segmentPopBG[numOfColors] = {0};
-//    int  segment, match1, match2, match3, match4;
-//    QImage *aux = new QImage(grayForeground.width(), grayForeground.height(), grayForeground.format());
-//    *aux = grayForeground;
-//    for(i = 0; i < grayForeground.height()*grayForeground.width(); i++){
-//        segmentMap[i] = -1;
-//    }
-//    //colorSegmentTable = separateSegments(cutGrayBg,segmentMap,numOfColors);
-//    separateSegments(cutGrayBg,segmentMap,numOfColors,colorSegmentTable);
-//    ///countSegment(cutGrayBg,colorSegmentTable,segmentPopBG,numOfColors);
-//    ///countSegment(grayForeground,colorSegmentTable,segmentPopBG,numOfColors);
-//    ///assingSegments(colorSegmentTable, segmentPopBG, segmentPopFG, numOfColors);
-//
-//    //qInfo("ainda vivo");
-//    /*for(i = 0; i < grayForeground.width(); i++){
-//        for(j = 0; j < grayForeground.height(); j++){
-//            if(qAlpha(grayForeground.pixel(i,j)) > 0){
-//
-//                segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-//                //qInfo("segment: %d", segment);
-//               k = 0;
-//                match1 = -1;
-//                match2 = -1;
-//                match3 = -1;
-//                match4 = -1;
-//                while(k < grayForeground.height()*grayForeground.width()){
-//                    if(colorSegmentTable[k] == segment){
-//                        match1 = k;
-//                        //qInfo("ate aqui 1");
-//                        if(i > 0 && k > 0 && colorSegmentTable[k - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j)), colorSegmentTable, numOfColors)){
-//                            match2 = k;
-//                            if(j > 0 && k > (grayForeground.height() - 1) && colorSegmentTable[k - grayForeground.height()] == getSegment(qRed(grayForeground.pixel(i,j - 1)), colorSegmentTable, numOfColors)){
-//                                match3 = k;
-//                               //qInfo("match 3");
-//                                if(colorSegmentTable[k - grayForeground.height() - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j - 1)), colorSegmentTable, numOfColors)){
-//                                    match4 = k;
-//                                    //qInfo("match 4");
-//                                }
-//                            }
-//                        }
-//                    }
-//                    k++;
-//                }
-//                //qInfo("m1 = %d, m2 = %d, m3 = %d, m4 = %d", match1, match2, match3, match4);
-//                if(match4 > -1){
-//                    aux->setPixel(i,j, (background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))));
-//                } else {
-//                    if(match3 > -1){
-//                        aux->setPixel(i,j, (background->pixel((x + (match3%grayForeground.width())), (y + (match3/grayForeground.width())))));
-//                    } else {
-//                        if(match2 > -1){
-//                            aux->setPixel(i,j, (background->pixel((x + (match2%grayForeground.width())), (y + (match2/grayForeground.width())))));
-//                        } else {
-//                            if(match1 > -1){
-//                                aux->setPixel(i,j, (background->pixel((x + (match1%grayForeground.width())), (y + (match1/grayForeground.width())))));
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }*/
-//
-//    int l = 0, lastL = 0;
-//       for(k = 0; k < numOfColors; k++){
-//            for(i = 0; i < grayForeground.width(); i++){
-//                for(j = 0; j < grayForeground.height(); j++){
-//                   if(qAlpha(grayForeground.pixel(i,j)) > 0){
-//                        segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-//                        if(segment == k){
-//                            l = lastL;
-//                            while(l < grayForeground.height()*grayForeground.width()){
-//                                if(colorSegmentTable[l] == segment){
-//                                   aux->setPixel(i,j, (background->pixel((x + (l%grayForeground.width())), (y + (l/grayForeground.width())))));
-//                                   lastL = l;
-//                                   l = grayForeground.height()*grayForeground.width();
-//                                } else {
-//                                    if(l ==grayForeground.height()*grayForeground.width() - 1 && lastL > 0){
-//                                        l = -1;
-//                                        lastL = 0;
-//                                    }
-//                                }
-//                                l++;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    /*int l = 0, lastL = 0;
-//    for(k = 0; k < numOfColors; k++){
-//        for(i = 0; i < grayForeground.width(); i++){
-//           for(j = 0; j < grayForeground.height(); j++){
-//                if(qAlpha(grayForeground.pixel(i,j)) > 0){
-//                    segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-//                    if(segment == k){
-//                        l = lastL;
-//                        while(l < grayForeground.height()*grayForeground.width()){
-//                           if(colorSegmentTable[l] == segment){
-//                               aux->setPixel(i,j, (background->pixel((x + (l%grayForeground.width())), (y + (l/grayForeground.width())))));
-//                               lastL = l;
-//                               l = grayForeground.height()*grayForeground.width();
-//                            } else {
-//                                if(l ==grayForeground.height()*grayForeground.width() - 1 && lastL > 0){
-//                                    l = -1;
-//                                    lastL = 0;
-//                                }
-//                            }
-//                            l++;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }*/
-//
-//    /**int l = 0, lastL = 0;
-//    //for(k = 0; k < numOfColors; k++){
-//        for(i = 0; i < grayForeground.width(); i++){
-//            for(j = 0; j < grayForeground.height(); j++){
-//                //qInfo("aqui,%d %d | %d %d", i, j, grayForeground.width(), grayForeground.height());
-//                if(qAlpha(grayForeground.pixel(i,j)) > 0){
-//                    segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-//                    if((segment != getSegment(qRed(grayForeground.pixel(i - 1,j - 1)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i,j - 1)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i + 1,j - 1)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i - 1,j)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i + 1,j)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i - 1,j + 1)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i,j + 1)), colorSegmentTable, numOfColors))
-//                    || (segment != getSegment(qRed(grayForeground.pixel(i + 1,j + 1)), colorSegmentTable, numOfColors))){
-//                    //if(segment == k){
-//                        borders[j*grayForeground.width() + i] = 1;
-//                        l = lastL;
-//                        while(l < grayForeground.height()*grayForeground.width()){
-//                            if(colorSegmentTable[l] == segment){
-//                               aux->setPixel(i,j, (background->pixel((x + (l%grayForeground.width())), (y + (l/grayForeground.width())))));
-//                               lastL = l;
-//                               l = grayForeground.height()*grayForeground.width();
-//                            } else {
-//                                if(l == grayForeground.height()*grayForeground.width() - 1 && lastL > 0){
-//                                    l = -1;
-//                                    lastL = 0;
-//                                }
-//                            }
-//                            l++;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    //}
-//
-//    aux->save("auxBorders.png");**/
-//
-//    /*for(i = 0; i < grayForeground.width(); i++){
-//            for(j = 0; j < grayForeground.height(); j++){
-//                //if(qAlpha(grayForeground.pixel(i,j)) > 0 && borders[j*grayForeground.width() + i] == 0){
-//                if(qAlpha(grayForeground.pixel(i,j)) > 0){
-//
-//                    segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-//                    //qInfo("segment: %d", segment);
-//                    k = 0;
-//                    match1 = -1;
-//                    match2 = -1;
-//                    match3 = -1;
-//                    match4 = -1;
-//                    while(k < grayForeground.height()*grayForeground.width()){
-//                        if(colorSegmentTable[k] == segment){
-//                            match1 = k;
-//                            //qInfo("ate aqui 1");
-//                            if(i > 0 && k > 0 && colorSegmentTable[k - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j)), colorSegmentTable, numOfColors)){
-//                                match2 = k;
-//                                if(j > 0 && k > 0 && (grayForeground.height() - 1) && colorSegmentTable[k - grayForeground.height()] == getSegment(qRed(grayForeground.pixel(i,j - 1)), colorSegmentTable, numOfColors)){
-//                                    match3 = k;
-//                                    //qInfo("match 3");
-//                                    if(colorSegmentTable[k - grayForeground.height() - 1] == getSegment(qRed(grayForeground.pixel(i - 1,j - 1)), colorSegmentTable, numOfColors)){
-//                                        match4 = k;
-//                                        //qInfo("match 4");
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        k++;
-//                    }
-//                    //qInfo("m1 = %d, m2 = %d, m3 = %d, m4 = %d", match1, match2, match3, match4);
-//                    if(match4 > -1){
-//                        aux->setPixel(i,j, (background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))));
-//                       qInfo("m4: %d %d %d", qRed(background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))), qGreen(background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))), qBlue(background->pixel((x + (match4%grayForeground.width())), (y + (match4/grayForeground.width())))));
-//                    } else {
-//                        if(match3 > -1){
-//                            aux->setPixel(i,j, (background->pixel((x + (match3%grayForeground.width())), (y + (match3/grayForeground.width())))));
-//                        } else {
-//                            if(match2 > -1){
-//                                aux->setPixel(i,j, (background->pixel((x + (match2%grayForeground.width())), (y + (match2/grayForeground.width())))));
-//                            } else {
-//                                if(match1 > -1){
-//                                    aux->setPixel(i,j, (background->pixel((x + (match1%grayForeground.width())), (y + (match1/grayForeground.width())))));
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//       }
-//    aux->save("auxFilled.png");*/
-//
-//    /*int ok;
-//    int random;
-//    srand (time(NULL));
-//    for(i = 0; i < grayForeground.width(); i++){
-//        for(j = 0; j < grayForeground.height(); j++){
-//            if(qAlpha(grayForeground.pixel(i,j)) > 0){
-//
-//                segment = getSegment(qRed(grayForeground.pixel(i,j)), colorSegmentTable, numOfColors);
-//                ok = 0;
-//                k = 0;
-//                while(ok == 0){
-//                    random = rand() % (grayForeground.height()*grayForeground.width());
-//                    while(random < (grayForeground.height()*grayForeground.width())){
-//                        if(segment == segmentMap[random]){
-//                            qInfo("foi");
-//                            aux->setPixel(i,j, (background->pixel((x + (random%grayForeground.width())), (y + (random/grayForeground.width())))));
-//                            ok = 1;
-//                            random = (grayForeground.height()*grayForeground.width());
-//                        }
-//                        random++;
-//                    }
-//                }
-//            }
-//        }
-//    }*/
-//
-//    qInfo("ate aqui 5");
-//    //brightness(aux, -50);
-//    //QImage cut(aux->width(), aux->height(), aux->format());
-//    //cut = *aux;
-//   //cut = cutImage(cut, *aux, 0, 0);
-//    //grayscale(&cut);
-//    //mergeImages2(aux,cut);
-//    for(i = 0; i < grayForeground.width(); i++){
-//        for(j = 0; j < grayForeground.height(); j++){
-//            if(qAlpha(aux->pixel(i,j)) > 0){
-//                background->setPixel((x + i),(y + j),(aux->pixel(i,j)));
-//                //background->setPixel((x + i),(y + j),qRgba(qRed(aux->pixel(i,j)),qGreen(aux->pixel(i,j)),qBlue(aux->pixel(i,j)), 100));
-//            }
-//        }
-//    }
-//}
 
 void mostFrequentColors(QImage *image, int numOfColors,int mostFrequentValues[256]){
     int i, j, max, mindex, histogram[256] = {0};
@@ -708,178 +232,6 @@ void histogramComputation(QImage *image, int histogram[]){
     }
 }
 
-
-void normalizeRGB(int *r, int *g, int *b){
-    if(*r > 255){
-        *r = 255;
-    } else {
-        if(*r < 0){
-            *r = 0;
-        }
-    }
-    if(*g > 255){
-        *g = 255;
-    } else {
-        if(*g < 0){
-            *g = 0;
-        }
-    }
-    if(*b > 255){
-        *b = 255;
-    } else {
-        if(*b < 0){
-            *b = 0;
-        }
-    }
-}
-
-void brightness(QImage *image, int bright){
-    int i, j, imgH, imgW, shadeR, shadeG, shadeB;
-    imgH = image->height();
-    imgW = image->width();
-
-    for(i = 0; i < imgW; i++){
-        for(j = 0; j < imgH; j++){
-            if(qAlpha(image->pixel(i,j)) > 0){
-                shadeR = qRed(image->pixel(i,j)) + bright;
-                shadeG = qGreen(image->pixel(i,j)) + bright;
-                shadeB = qBlue(image->pixel(i,j)) + bright;
-                normalizeRGB(&shadeR,&shadeG,&shadeB);
-                image->setPixel(QPoint(i,j),qRgb(shadeR,shadeG,shadeB));
-            }
-        }
-    }
-}
-
-void contrast(QImage *image, float contr){
-    int i, j, imgH, imgW, shadeR, shadeG, shadeB;
-    imgH = image->height();
-    imgW = image->width();
-
-    for(i = 0; i < imgW; i++){
-        for(j = 0; j < imgH; j++){
-            shadeR = (int)round(qRed(image->pixel(i,j))*contr);
-            shadeG = (int)round(qGreen(image->pixel(i,j))*contr);
-            shadeB = (int)round(qBlue(image->pixel(i,j))*contr);
-            normalizeRGB(&shadeR,&shadeG,&shadeB);
-            image->setPixel(QPoint(i,j),qRgb(shadeR,shadeG,shadeB));
-        }
-    }
-}
-
-void negative(QImage *image){
-    int i, j, imgH, imgW, shadeR, shadeG, shadeB;
-    imgH = image->height();
-    imgW = image->width();
-
-    for(i = 0; i < imgW; i++){
-        for(j = 0; j < imgH; j++){
-            shadeR = 255 - qRed(image->pixel(i,j));
-            shadeG = 255 - qGreen(image->pixel(i,j));
-            shadeB = 255 - qBlue(image->pixel(i,j));
-            image->setPixel(QPoint(i,j),qRgb(shadeR,shadeG,shadeB));
-        }
-    }
-}
-
-void equalization(QImage *image){
-    int histogram[256] = {0}, cumulative[256] = {0}, i, j;
-    int cumulativeR, cumulativeG, cumulativeB;
-    int size = image->width()*image->height();
-    float alpha = (float)255/size;
-    QImage gray = *image;
-    grayscale(&gray);
-    histogramComputation(&gray,histogram);
-    cumulative[0] = alpha*histogram[0];
-    for(i = 1; i < 256; i++){
-        cumulative[i] = cumulative[i-1] + alpha*histogram[i];
-    }
-    for(i=0; i < image->width() ; i++){
-        for(j=0; j < image->height() ; j++){
-            cumulativeR = cumulative[(qRed(image->pixel(i,j)))];
-            cumulativeG = cumulative[(qGreen(image->pixel(i,j)))];
-            cumulativeB = cumulative[(qBlue(image->pixel(i,j)))];
-            image->setPixel(i,j,qRgb(cumulativeR, cumulativeG, cumulativeB));
-        }
-    }
-}
-
-/*void histogramMatching(QImage *image, QImage *target){
-    int histSrc[256], histTarget[256], histSrcCumulative[256], histTargetCumulative[256], normalizedSrc[256], normalizedTarget[256];
-    int HM[256], shade, i, j, diff, closestShade, used[256] = {0};
-    int size = image->width()*image->height();
-    float alpha = (float)255/size;
-    histogramComputation(image,histSrc);
-    histogramComputation(target,histTarget);
-    histSrcCumulative[0] = alpha*histSrc[0];
-    histTargetCumulative[0] = alpha*histTarget[0];
-    normalizedSrc[0] = histSrcCumulative[0];
-    normalizedTarget[0] = histTargetCumulative[0];
-    for(i = 1; i < 256; i++){
-        histSrcCumulative[i] = histSrcCumulative[i-1] + alpha*histSrc[i];
-        histTargetCumulative[i] = histTargetCumulative[i-1] + alpha*histTarget[i];
-        normalizedSrc[i] = histSrcCumulative[i];
-        normalizedTarget[i] = histTargetCumulative[i];
-    }
-    normalizeHist(normalizedSrc,normalizedTarget);
-    for(shade = 0; shade < 256; shade++){
-        diff = size+10;
-        for(i = 0; i < 256; i++){
-            if(abs(normalizedTarget[i] - normalizedSrc[shade]) < diff && used[i] == 0){
-                diff = abs(normalizedTarget[i] - normalizedSrc[shade]);
-                closestShade = i;
-            }
-        }
-        HM[shade] = closestShade;
-        used[closestShade] = 1;
-    }
-
-    for(i=0; i < image->width() ; i++){
-        for(j=0; j < image->height() ; j++){
-            shade = HM[qRed(image->pixel(i,j))];
-            image->setPixel(i,j,qRgb(shade,shade,shade));
-        }
-    }
-}*/
-
-void histogramMatching(QImage *image, QImage target){
-    int histSrc[256], histTarget[256], histSrcCumulative[256], histTargetCumulative[256], normalizedSrc[256], normalizedTarget[256];
-    int HM[256], shade, i, j, diff, closestShade, used[256] = {0};
-    int size = image->width()*image->height();
-    float alpha = (float)255/size;
-    histogramComputation(image,histSrc);
-    histogramComputation(&target,histTarget);
-    histSrcCumulative[0] = alpha*histSrc[0];
-    histTargetCumulative[0] = alpha*histTarget[0];
-    normalizedSrc[0] = histSrcCumulative[0];
-    normalizedTarget[0] = histTargetCumulative[0];
-    for(i = 1; i < 256; i++){
-        histSrcCumulative[i] = histSrcCumulative[i-1] + alpha*histSrc[i];
-        histTargetCumulative[i] = histTargetCumulative[i-1] + alpha*histTarget[i];
-        normalizedSrc[i] = histSrcCumulative[i];
-        normalizedTarget[i] = histTargetCumulative[i];
-    }
-    normalizeHist(normalizedSrc,normalizedTarget);
-    for(shade = 0; shade < 256; shade++){
-        diff = size+10;
-        for(i = 0; i < 256; i++){
-            if(abs(normalizedTarget[i] - normalizedSrc[shade]) < diff && used[i] == 0){
-                diff = abs(normalizedTarget[i] - normalizedSrc[shade]);
-                closestShade = i;
-            }
-        }
-        HM[shade] = closestShade;
-        used[closestShade] = 1;
-    }
-
-    for(i=0; i < image->width() ; i++){
-        for(j=0; j < image->height() ; j++){
-            shade = HM[qRed(image->pixel(i,j))];
-            image->setPixel(i,j,qRgb(shade,shade,shade));
-        }
-    }
-}
-
 void normalizeHist(int histSrc[256], int histTarget[256]){
     int i, maxTarget = 0, maxSrc = 0, coef = 0;
     for(i = 0; i < 255; i++){
@@ -909,170 +261,4 @@ void normalizeHist(int histSrc[256], int histTarget[256]){
             histTarget[i] = histTarget[i]*coef;
         }
     }
-}
-
-QImage zoomOut(QImage image, int zoomV, int zoomH){
-    int i, j, k, l, red = 0, green = 0, blue = 0, width, height, size, restV, restH, height2, width2, sizeH, sizeV;
-    size = zoomV*zoomH;
-    height = (int)ceil((double)image.height()/zoomV);
-    width = (int)ceil((double)image.width()/zoomH);
-    height2 = height;
-    width2 = width;
-    if(image.height() % zoomV != 0){
-        height2 = height - 1;
-    }
-    if(image.width() % zoomH != 0){
-        width2 = width - 1;
-    }
-    QImage resized = QImage(width,height,image.format());
-
-    for(i = 0; i < height2; i++){
-        for(j = 0; j < width2; j++){
-            red = 0;
-            green = 0;
-            blue = 0;
-            for(k = 0; k < zoomV; k++){
-                for(l = 0; l < zoomH; l++){
-                    red = red + qRed(image.pixel((j*zoomH + l),(i*zoomV + k)));
-                    green = green + qGreen(image.pixel((j*zoomH + l),(i*zoomV + k)));
-                    blue = blue + qBlue(image.pixel((j*zoomH + l),(i*zoomV + k)));
-                }
-            }
-            resized.setPixel(j,i,qRgb(red/size,green/size,blue/size));
-        }
-    }
-    restV = zoomV;
-    restH = zoomH;
-    if(image.height() % zoomV != 0){
-        restV = (image.height() - height2*zoomV);
-    }
-    if(image.width() % zoomH != 0){
-        restH = (image.width() - width2*zoomH);
-    }
-    sizeV = restV*zoomH;
-    sizeH = restH*zoomV;
-    if(image.width() % zoomH != 0){
-        for(i = 0; i < height; i++){
-            for(j = (width2*zoomH); j <= (image.width() - restH); j++){
-                red = 0;
-                green = 0;
-                blue = 0;
-                for(k = 0; k < restV; k++){
-                    for(l = 0; l < restH; l++){
-                        red = red + qRed(image.pixel((j + l),(i*zoomV + k)));
-                        green = green + qGreen(image.pixel((j + l),(i*zoomV + k)));
-                        blue = blue + qBlue(image.pixel((j + l),(i*zoomV + k)));
-                    }
-                }
-            }
-            resized.setPixel(width - 1,i,qRgb(red/sizeH,green/sizeH,blue/sizeH));
-        }
-    }
-    if(image.height() % zoomV != 0){
-        for(j = 0; j < width; j++){
-            for(i = (height2*zoomV); i <= (image.height() - restV); i++){
-                red = 0;
-                green = 0;
-                blue = 0;
-                for(l = 0; l < restH; l++){
-                    for(k = 0; k < restV; k++){
-                        red = red + qRed(image.pixel((j*zoomH + l),(i + k)));
-                        green = green + qGreen(image.pixel((j*zoomH + l),(i + k)));
-                        blue = blue + qBlue(image.pixel((j*zoomH + l),(i + k)));
-                    }
-                }
-            }
-            resized.setPixel(j,height - 1,qRgb(red/sizeV,green/sizeV,blue/sizeV));
-        }
-    }
-    return resized;
-}
-
-QImage zoomIn(QImage image){
-    int i, j, red = 0, green = 0, blue = 0, width, height;
-    height = image.height()*2 - 1;
-    width = image.width()*2 - 1;
-    QImage resized = QImage(width,height,image.format());
-
-    for(i = 0; i < height; i++){
-        for(j = 0; j < width; j++){
-            if(i % 2 == 0 && j % 2 == 0){
-                red  = qRed(image.pixel(j/2,i/2));
-                green = qGreen(image.pixel(j/2,i/2));
-                blue = qBlue(image.pixel(j/2,i/2));
-                resized.setPixel(j,i,qRgb(red,green,blue));
-            } else {
-                resized.setPixel(j,i,qRgb(255,255,255));
-            }
-        }
-    }
-    for(i = 0; i < height; i = i + 2){
-        for(j = 0; j < width - 1; j = j + 2){
-            if(i % 2 == 0){
-                red  = ceil((double)(qRed(resized.pixel(j,i)) + qRed(resized.pixel(j + 2,i)))/2);
-                green = ceil((double)(qGreen(resized.pixel(j,i)) + qGreen(resized.pixel(j + 2,i)))/2);
-                blue = ceil((double)(qBlue(resized.pixel(j,i)) + qBlue(resized.pixel(j + 2,i)))/2);
-                resized.setPixel(j+1,i,qRgb(red,green,blue));
-            }
-        }
-    }
-    for(j = 0; j < width; j++){
-        for(i = 1; i < height - 1; i = i + 2){
-            red  = ceil((double)(qRed(resized.pixel(j,i - 1)) + qRed(resized.pixel(j,i + 1)))/2);
-            green = ceil((double)(qGreen(resized.pixel(j,i - 1)) + qGreen(resized.pixel(j,i + 1)))/2);
-            blue = ceil((double)(qBlue(resized.pixel(j,i - 1)) + qBlue(resized.pixel(j,i + 1)))/2);
-            resized.setPixel(j,i,qRgb(red,green,blue));
-        }
-    }
-    return resized;
-}
-
-QImage rotateRight(QImage image){
-    QImage rotated = QImage(image.height(),image.width(),image.format());
-    int i, j, red, green, blue;
-    for(i = 0; i < image.height(); i++){
-        for(j = 0; j < image.width(); j++){
-            red  = qRed(image.pixel(j,(image.height() - (i + 1))));
-            green = qGreen(image.pixel(j,(image.height() - (i + 1))));
-            blue = qBlue(image.pixel(j,(image.height() - (i + 1))));
-            rotated.setPixel(i,j,qRgb(red,green,blue));
-        }
-    }
-    return rotated;
-}
-
-QImage rotateLeft(QImage image){
-    QImage rotated = QImage(image.height(),image.width(),image.format());
-    int i, j, red, green, blue;
-    for(i = 0; i < image.height(); i++){
-        for(j = 0; j < image.width(); j++){
-            red  = qRed(image.pixel((image.width() - (j + 1)),i));
-            green = qGreen(image.pixel((image.width() - (j + 1)),i));
-            blue = qBlue(image.pixel((image.width() - (j + 1)),i));
-            rotated.setPixel(i,j,qRgb(red,green,blue));
-        }
-    }
-    return rotated;
-}
-
-QImage applyFilter(QImage image, double kernel[9], int filter){
-    QImage aux = QImage(image.width(),image.height(),image.format());
-    int i, j;
-    int convolution;
-    aux = image;
-    for(i = 1; i < (image.height() - 1); i++){
-        for(j = 1; j < (image.width() - 1); j++){
-            convolution = (int)(qRed(aux.pixel(j - 1, i - 1))*kernel[8] + qRed(aux.pixel(j, i - 1))*kernel[7]
-                    + qRed(aux.pixel(j + 1, i - 1))*kernel[6] + qRed(aux.pixel(j - 1, i))*kernel[5]
-                    + qRed(aux.pixel(j, i))*kernel[4] + qRed(aux.pixel(j + 1, i))*kernel[3]
-                    + qRed(aux.pixel(j - 1, i + 1))*kernel[2] + qRed(aux.pixel(j, i + 1))*kernel[1]
-                    + qRed(aux.pixel(j + 1, i + 1))*kernel[0]);
-            if(filter > 3){
-                convolution = convolution + 127;
-            }
-            normalizeRGB(&convolution, &convolution, &convolution);
-            image.setPixel(j,i,qRgb(convolution, convolution, convolution));
-        }
-    }
-    return image;
 }
